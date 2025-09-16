@@ -1,11 +1,18 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tasky/models/task_model.dart';
 import 'package:tasky/screens/add_task_screen.dart';
+import 'package:tasky/widgets/sliver_task_list_widget.dart';
 import 'package:tasky/widgets/task_list_widget.dart';
+
+import '../core/services/preferences_manager.dart' show PreferencesManager;
+import '../core/widgets/custom_svg_picture.dart';
+import '../widgets/achieved_tasks_widgets.dart';
+import '../widgets/high_priority_tasks_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,8 +23,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String? username;
+  String? userImage;
+  String? motivationQuote;
   List<TaskModel> tasks = [];
   bool isLoading = false;
+  int totalTask = 0;
+  int totalDoneTask = 0;
+  double precent = 0;
 
   @override
   void initState() {
@@ -27,9 +39,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _loadUserName() async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
     setState(() {
-      username = pref.getString("username");
+      userImage = PreferencesManager().getString("user_image");
+      username = PreferencesManager().getString("username");
+      motivationQuote =
+          PreferencesManager().getString("motivation_quote") ??
+          "One task at a time. One step closer.";
     });
   }
 
@@ -38,15 +53,16 @@ class _HomeScreenState extends State<HomeScreen> {
       isLoading = true;
     });
     //await Future.delayed(Duration(seconds: 5));
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    final finalTask = pref.getString('tasks');
+    final finalTask = PreferencesManager().getString('tasks');
     if (finalTask != null) {
       final taskAfterDecode = jsonDecode(finalTask) as List<dynamic>;
+
       setState(() {
         tasks =
             taskAfterDecode
                 .map((element) => TaskModel.fromJson(element))
                 .toList();
+        _calculatePercent();
       });
     }
 
@@ -55,108 +71,137 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  _calculatePercent() {
+    totalTask = tasks.length;
+    totalDoneTask = tasks.where((e) => e.isDone).length;
+    precent = totalTask == 0 ? 0 : totalDoneTask / totalTask;
+  }
+
+  _deleteTask(int? id) async {
+    if (id == null) return;
+    setState(() {
+      tasks.removeWhere((task) => task.id == id);
+      _calculatePercent();
+    });
+    final updatedTask = tasks.map((element) => element.toJson()).toList();
+    PreferencesManager().setString("tasks", jsonEncode(updatedTask));
+  }
+
+  _doneTask(bool? value, int? index) async {
+    setState(() {
+      tasks[index!].isDone = value ?? false;
+      _calculatePercent();
+    });
+    final updatedTask = tasks.map((element) => element.toJson()).toList();
+    PreferencesManager().setString("tasks", jsonEncode(updatedTask));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundImage: AssetImage(
-                    "assets/images/image_profile.png",
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(16.0),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Text(
-                        "Good Evening ,$username",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w400,
-                          fontSize: 16,
-                          color: Color(0xFFFFFCFC),
+                      CircleAvatar(
+                        backgroundImage:
+                            userImage == null
+                                ? AssetImage('assets/images/image_profile.png')
+                                : FileImage(File(userImage!)),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Good Evening ,$username",
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            Text(
+                              "$motivationQuote",
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                          ],
                         ),
                       ),
-                      Text(
-                        "One task at a time.One step\ncloser. ",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w400,
-                          fontSize: 14,
-                          color: Color(0xFFC6C6C6),
-                        ),
+                      Spacer(),
+                      CustomSvgPicture.withoutColor(
+                        path: "assets/images/light.svg",
+                        width: 34,
+                        height: 34,
                       ),
                     ],
                   ),
-                ),
-                Spacer(),
-                SvgPicture.asset(
-                  "assets/images/light.svg",
-                  width: 34,
-                  height: 34,
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Yuhuu ,Your work Is ',
-              style: TextStyle(fontSize: 32, color: Color(0xFFFFFCFC)),
-            ),
-            Row(
-              children: [
-                Text(
-                  'almost done ! ',
-                  style: TextStyle(fontSize: 32, color: Color(0xFFFFFCFC)),
-                ),
-                SvgPicture.asset("assets/images/hand.svg"),
-              ],
-            ),
-
-            Padding(
-              padding: const EdgeInsets.only(top: 24, bottom: 16),
-              child: Text(
-                'My Tasks',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFFFFFCFC),
-                ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Yuhuu ,Your work Is ',
+                    style: Theme.of(context).textTheme.displayLarge,
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        'almost done ! ',
+                        style: Theme.of(context).textTheme.displayLarge,
+                      ),
+                      CustomSvgPicture.withoutColor(
+                        path: "assets/images/hand.svg",
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  //Achieved Tasks
+                  AchievedTasksWidget(
+                    totalTask: totalTask,
+                    totalDoneTask: totalDoneTask,
+                    precent: precent,
+                  ),
+                  SizedBox(height: 8),
+                  HighPriorityTasksWidgets(
+                    tasks: tasks,
+                    onTap: (bool? value, int? index) {
+                      _doneTask(value, index);
+                    },
+                    refresh: () {
+                      _loadTask();
+                    },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 24, bottom: 16),
+                    child: Text(
+                      'My Tasks',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+                ],
               ),
             ),
-            Expanded(
-              child:
-                  isLoading
-                      ? Center(
-                        child: CircularProgressIndicator(),
-                      )
-                      : TaskListWidget(
-                        tasks: tasks,
-                        onTap: (bool? value, int index) async {
-                          setState(() {
-                            tasks[index!].isDone = value ?? false;
-                          });
-                          final pref = await SharedPreferences.getInstance();
-                          final updatedTask =
-                              tasks
-                                  .map((element) => element.toJson())
-                                  .toList();
-                          pref.setString("tasks", jsonEncode(updatedTask));
-                        },
-                      ),
-            ),
+            isLoading
+                ? SliverToBoxAdapter(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+                : SliverTaskListWidget(
+                  tasks: tasks,
+                  onTap: (bool? value, int index) async {
+                    _doneTask(value, index);
+                  },
+                  onDelete: (int? id) {
+                    _deleteTask(id);
+                  },
+                  onEdit: () => _loadTask(),
+                ),
           ],
         ),
       ),
       floatingActionButton: SizedBox(
         height: 44,
         child: FloatingActionButton.extended(
-          backgroundColor: Color(0xFF15B86C),
-          foregroundColor: Color(0xFFFFFCFC),
           label: Text("Add New Task"),
           icon: Icon(Icons.add),
           shape: RoundedRectangleBorder(

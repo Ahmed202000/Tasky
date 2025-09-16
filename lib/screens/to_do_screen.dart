@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tasky/core/services/preferences_manager.dart';
 
 import '../models/task_model.dart';
 import '../widgets/task_list_widget.dart';
@@ -29,8 +29,7 @@ class _ToDoScreenState extends State<ToDoScreen> {
       isLoading = true;
     });
     //await Future.delayed(Duration(seconds: 5));
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    final finalTask = pref.getString('tasks');
+    final finalTask = PreferencesManager().getString('tasks');
     if (finalTask != null) {
       final taskAfterDecode = jsonDecode(finalTask) as List<dynamic>;
       setState(() {
@@ -49,6 +48,29 @@ class _ToDoScreenState extends State<ToDoScreen> {
     });
   }
 
+
+
+  _deleteTask(int? id) async {
+    List<TaskModel> tasks = [];
+    if (id == null) return;
+
+    final finalTask = PreferencesManager().getString('tasks');
+    if (finalTask != null) {
+      final taskAfterDecode = jsonDecode(finalTask) as List<dynamic>;
+      tasks = taskAfterDecode
+          .map((element) => TaskModel.fromJson(element))
+          .toList();
+      tasks.removeWhere((task) => task.id == id);
+
+      setState(() {
+        toDoTasks.removeWhere((task) => task.id == id);
+      });
+      final updatedTask = tasks.map((element) => element.toJson()).toList();
+      PreferencesManager().setString("tasks", jsonEncode(updatedTask));
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -58,7 +80,7 @@ class _ToDoScreenState extends State<ToDoScreen> {
           padding: const EdgeInsets.all(18.0),
           child: Text(
             'To Do Tasks',
-            style: TextStyle(fontSize: 20, color: Color(0xFFFFFCFC)),
+            style: Theme.of(context).textTheme.labelSmall,
           ),
         ),
         Expanded(
@@ -71,11 +93,9 @@ class _ToDoScreenState extends State<ToDoScreen> {
                       tasks: toDoTasks,
                       onTap: (bool? value, int index) async {
                         setState(() {
-                          toDoTasks[index!].isDone = value ?? false;
+                          toDoTasks[index].isDone = value ?? false;
                         });
-                        final pref = await SharedPreferences.getInstance();
-
-                        final allData = pref.getString('tasks');
+                        final allData = PreferencesManager().getString('tasks');
                         if (allData != null) {
                           List<TaskModel> allDataList =
                               (jsonDecode(allData) as List)
@@ -86,11 +106,17 @@ class _ToDoScreenState extends State<ToDoScreen> {
                             (e) => e.id == toDoTasks[index].id,
                           );
                           allDataList[newIndex] = toDoTasks[index];
-                          pref.setString("tasks", jsonEncode(allDataList));
+                          PreferencesManager().setString(
+                            "tasks",
+                            jsonEncode(allDataList),
+                          );
                           _loadTask();
                         }
                       },
                       emptyMessage: 'No Data Found',
+                      onDelete: (int? id) {
+                        _deleteTask(id);
+                      }, onEdit: () =>_loadTask(),
                     ),
           ),
         ),

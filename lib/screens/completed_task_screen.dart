@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/services/preferences_manager.dart' show PreferencesManager;
 import '../models/task_model.dart';
 import '../widgets/task_list_widget.dart';
 
@@ -29,8 +29,7 @@ class _CompletedTaskScreenState extends State<CompletedTaskScreen> {
       isLoading = true;
     });
     //await Future.delayed(Duration(seconds: 5));
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    final finalTask = pref.getString('tasks');
+    final finalTask = PreferencesManager().getString('tasks');
     if (finalTask != null) {
       final taskAfterDecode = jsonDecode(finalTask) as List<dynamic>;
       setState(() {
@@ -49,6 +48,27 @@ class _CompletedTaskScreenState extends State<CompletedTaskScreen> {
     });
   }
 
+  _deleteTask(int? id) async {
+    List<TaskModel> tasks = [];
+    if (id == null) return;
+
+    final finalTask = PreferencesManager().getString('tasks');
+    if (finalTask != null) {
+      final taskAfterDecode = jsonDecode(finalTask) as List<dynamic>;
+      tasks =
+          taskAfterDecode
+              .map((element) => TaskModel.fromJson(element))
+              .toList();
+      tasks.removeWhere((task) => task.id == id);
+
+      setState(() {
+        completedtasks.removeWhere((task) => task.id == id);
+      });
+      final updatedTask = tasks.map((element) => element.toJson()).toList();
+      PreferencesManager().setString("tasks", jsonEncode(updatedTask));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -58,32 +78,40 @@ class _CompletedTaskScreenState extends State<CompletedTaskScreen> {
           padding: const EdgeInsets.all(18.0),
           child: Text(
             'Completed Tasks',
-            style: TextStyle(fontSize: 20, color: Color(0xFFFFFCFC)),
+            style: Theme.of(context).textTheme.labelSmall,
           ),
         ),
-      Expanded(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child:
-          isLoading
-              ? Center(child: CircularProgressIndicator())
-              : TaskListWidget(
-            tasks: completedtasks,
-            onTap: (bool? value, int index) async {
-              setState(() {
-                completedtasks[index!].isDone = value ?? false;
-              });
-              final pref = await SharedPreferences.getInstance();
-              final updatedTask =
-              completedtasks.map((element) => element.toJson()).toList();
-              pref.setString("tasks", jsonEncode(updatedTask));
-              _loadTask();
-            }, emptyMessage: 'No Tasks Completed',
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child:
+                isLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : TaskListWidget(
+                      tasks: completedtasks,
+                      onTap: (bool? value, int index) async {
+                        setState(() {
+                          completedtasks[index!].isDone = value ?? false;
+                        });
+                        final updatedTask =
+                            completedtasks
+                                .map((element) => element.toJson())
+                                .toList();
+                        PreferencesManager().setString(
+                          "tasks",
+                          jsonEncode(updatedTask),
+                        );
+                        _loadTask();
+                      },
+                      emptyMessage: 'No Tasks Completed',
+                      onDelete: (int? id) {
+                        _deleteTask(id);
+                      },
+                      onEdit: () =>_loadTask(),
+                    ),
           ),
         ),
-      ),
-
-
-    ],);
+      ],
+    );
   }
 }

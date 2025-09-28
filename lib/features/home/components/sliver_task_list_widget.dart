@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tasky/models/task_model.dart';
 import 'package:tasky/core/componnts/task_item_widgets.dart';
 
-import '../../../core/widgets/custom_check_box.dart';
+import '../../../../../core/widgets/custom_check_box.dart';
 
 class SliverTaskListWidget extends StatelessWidget {
   const SliverTaskListWidget({

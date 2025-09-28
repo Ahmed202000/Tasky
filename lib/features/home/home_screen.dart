@@ -7,7 +7,7 @@ import 'package:tasky/models/task_model.dart';
 
 import '../../core/services/preferences_manager.dart' show PreferencesManager;
 import '../../core/widgets/custom_svg_picture.dart';
-import '../../widgets/sliver_task_list_widget.dart';
+import 'components/sliver_task_list_widget.dart';
 import 'components/high_priority_tasks_widgets.dart';
 import 'components/achieved_tasks_widgets.dart';
 

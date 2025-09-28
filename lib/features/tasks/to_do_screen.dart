@@ -2,9 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:tasky/core/services/preferences_manager.dart';
-
-import '../models/task_model.dart';
-import '../widgets/task_list_widget.dart';
+import '../../core/componnts/task_list_widget.dart';
+import '../../models/task_model.dart';
 
 class ToDoScreen extends StatefulWidget {
   const ToDoScreen({super.key});

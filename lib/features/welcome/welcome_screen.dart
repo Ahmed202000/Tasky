@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:tasky/core/services/preferences_manager.dart';
-import 'package:tasky/screens/home_screen.dart';
-
-import '../core/widgets/custom_svg_picture.dart';
-import '../core/widgets/custom_text_form_field.dart' show CustomTextFormField;
+import 'package:tasky/features/home/home_screen.dart';
+import '../../core/widgets/custom_svg_picture.dart';
+import '../../core/widgets/custom_text_form_field.dart'
+    show CustomTextFormField;
 
 class WelcomeScreen extends StatelessWidget {
   WelcomeScreen({super.key});
@@ -63,7 +62,6 @@ class WelcomeScreen extends StatelessWidget {
                     width: 215,
                     height: 200,
                   ),
-
 
                   SizedBox(height: 28),
                   SizedBox(height: 8),

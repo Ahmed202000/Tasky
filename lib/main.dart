@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:tasky/core/services/preferences_manager.dart';
 import 'package:tasky/core/theme/light_theme.dart';
-import 'package:tasky/screens/main_screen.dart';
-import 'package:tasky/screens/welcome_screen.dart';
+import 'package:tasky/features/navigation/main_screen.dart';
+import 'package:tasky/features/welcome/welcome_screen.dart';
 
 import 'core/theme/dark_theme.dart';
 import 'core/theme/theme-controller.dart';
